@@ -8,35 +8,51 @@ import { ReactQuill } from '../../TextEditor/TextEditor';
 export default function CompleteTaskModal({ isOpen, onClose, task }) {
   const dispatch = useDispatch();
 
-  const [taskData, setTaskData] = useState(task);
-  const [errors, setErrors] = useState({});
-
-  const validateData = () => {
-    const errors = {
-      actualHours:
-        !/^\d+(\.\d{1,2})?$/.test(taskData.actualHours) ||
-        parseFloat(taskData.actualHours) % 1 > 0.59,
-    };
-    console.log(errors.actualHours, 'errors');
-
-    setErrors(errors);
-    return !errors.actualHours;
-  };
+  const [actualHours, setActualHours] = useState('');
+  const [actualNotes, setActualNotes] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setTaskData({ ...taskData, [name]: value });
+    if (name === 'actualHours') {
+      const parts = value.split('.');
+      if (parts.length === 1 || (parts.length === 2 && parts[1] === '')) {
+        setActualHours(value);
+        return;
+      } else if (parts.length === 2) {
+        const integerPart = parts[0];
+        const decimalPart = parts[1];
+        let integerPartNumber = parseInt(integerPart, 10);
+        let decimalPartNumber = parseInt(decimalPart, 10);
+
+        if (decimalPart.length > 2) {
+          return;
+        } else {
+          if (decimalPartNumber >= 60) {
+            decimalPartNumber -= 60;
+            integerPartNumber += 1;
+            setActualHours(
+              `${integerPartNumber}.${
+                decimalPartNumber <= 9 ? '0' : ''
+              }${decimalPartNumber}`,
+            );
+          } else {
+            setActualHours(`${integerPartNumber}.${decimalPartNumber}`);
+          }
+        }
+      }
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validateData()) {
-      console.log('Form submitted successfully!');
-      dispatch(completeTask(taskData));
-      onClose();
-    } else {
-      console.log('Form submission failed due to validation errors.');
-    }
+    dispatch(
+      completeTask({
+        taskNo: task.taskNo,
+        actualHours,
+        actualNotes,
+      }),
+    );
+    onClose();
   };
 
   return (
@@ -45,6 +61,7 @@ export default function CompleteTaskModal({ isOpen, onClose, task }) {
       isOpen={isOpen}
       onClose={onClose}
       onClickPrimary={handleSubmit}
+      primaryDisabled={actualHours === '' || actualNotes === ''}
     >
       <div className="input-group">
         <label htmlFor="estimateTime" className="input-label">
@@ -68,16 +85,11 @@ export default function CompleteTaskModal({ isOpen, onClose, task }) {
         <TextField
           fullWidth
           name="actualHours"
+          value={actualHours}
           onChange={handleChange}
           placeholder="Enter Actual Hours"
           style={{ marginBottom: '1rem', marginTop: '0.5rem' }}
           variant="outlined"
-          error={errors.actualHours}
-          helperText={
-            errors.actualHours
-              ? 'Invalid actual hours. Decimal part must be less than 0.60'
-              : ''
-          }
         />
       </div>
       <div className="input-group">
@@ -88,10 +100,8 @@ export default function CompleteTaskModal({ isOpen, onClose, task }) {
           theme="snow"
           name="actualNotes"
           placeholder="Enter Final Notes"
-          value={taskData?.actualNotes}
-          onChange={(newData) =>
-            setTaskData({ ...taskData, actualNotes: newData })
-          }
+          value={actualNotes}
+          onChange={(newData) => setActualNotes(newData)}
           style={{ height: '10rem' }}
         />
       </div>

@@ -2,47 +2,57 @@ import React, { useState } from 'react';
 import MuiModal from '../../MuiModal';
 import { TextField } from '@mui/material';
 import { useDispatch } from 'react-redux';
-import {
-  completeTask,
-  createNewTask,
-  editTask,
-} from '@/store/slices/tasksSlice';
+import { editTask } from '@/store/slices/tasksSlice';
 import { ReactQuill } from '../../TextEditor/TextEditor';
 
 export default function EditTaskModal({ isOpen, onClose, task }) {
   const dispatch = useDispatch();
 
-  const [taskData, setTaskData] = useState(task);
-  const [errors, setErrors] = useState({});
-
-  const validateData = () => {
-    const errors = {
-      estimateHours:
-        !/^\d+(\.\d{1,2})?$/.test(taskData.estimateHours) ||
-        parseFloat(taskData.estimateHours) % 1 > 0.59,
-    };
-    console.log(errors, 'errors');
-
-    setErrors(errors);
-
-    return !errors.estimateHours;
-  };
+  const [estimateHours, setEstimateHours] = useState('');
+  const [estimateNotes, setEstimateNotes] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setTaskData({ ...taskData, [name]: value });
+    if (name === 'estimateHours') {
+      const parts = value.split('.');
+      if (parts.length === 1 || (parts.length === 2 && parts[1] === '')) {
+        setEstimateHours(value);
+        return;
+      } else if (parts.length === 2) {
+        const integerPart = parts[0];
+        const decimalPart = parts[1];
+        let integerPartNumber = parseInt(integerPart, 10);
+        let decimalPartNumber = parseInt(decimalPart, 10);
+
+        if (decimalPart.length > 2) {
+          return;
+        } else {
+          if (decimalPartNumber >= 60) {
+            decimalPartNumber -= 60;
+            integerPartNumber += 1;
+            setEstimateHours(
+              `${integerPartNumber}.${
+                decimalPartNumber <= 9 ? '0' : ''
+              }${decimalPartNumber}`,
+            );
+          } else {
+            setEstimateHours(`${integerPartNumber}.${decimalPartNumber}`);
+          }
+        }
+      }
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validateData()) {
-      console.log('Form submitted successfully!');
-      dispatch(editTask(taskData));
-      onClose();
-      setErrors({});
-    } else {
-      console.log('Form submission failed due to validation errors.');
-    }
+    dispatch(
+      editTask({
+        taskNo: task.taskNo,
+        estimateHours,
+        estimateNotes,
+      }),
+    );
+    onClose();
   };
 
   return (
@@ -50,8 +60,8 @@ export default function EditTaskModal({ isOpen, onClose, task }) {
       title={'Edit Task'}
       isOpen={isOpen}
       onClose={onClose}
-      primaryDisabled={taskData.estimateNotes === ''}
       onClickPrimary={handleSubmit}
+      primaryDisabled={estimateHours === '' || estimateNotes === ''}
     >
       <div className="input-group">
         <label htmlFor="estimateTime" className="input-label">
@@ -63,7 +73,6 @@ export default function EditTaskModal({ isOpen, onClose, task }) {
           name="taskNo"
           value={task.taskNo}
           disabled
-          onChange={handleChange}
           placeholder="Enter Task No"
           variant="outlined"
         />
@@ -76,6 +85,7 @@ export default function EditTaskModal({ isOpen, onClose, task }) {
           className="input-field"
           fullWidth
           name="estimateHours"
+          value={estimateHours}
           onChange={handleChange}
           placeholder="Enter Estimate Hours"
           variant="outlined"
@@ -91,10 +101,8 @@ export default function EditTaskModal({ isOpen, onClose, task }) {
           theme="snow"
           name="estimateNotes"
           placeholder="Enter Estimate Notes"
-          value={taskData?.estimateNotes}
-          onChange={(newData) =>
-            setTaskData({ ...taskData, estimateNotes: newData })
-          }
+          value={estimateNotes}
+          onChange={(newData) => setEstimateNotes(newData)}
           style={{ height: '10rem' }}
         />
       </div>
