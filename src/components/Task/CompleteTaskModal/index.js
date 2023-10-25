@@ -53,6 +53,8 @@ export default function CompleteTaskModal({ isOpen, onClose, task }) {
       }),
     );
     onClose();
+    setActualHours('');
+    setActualNotes('');
   };
 
   return (

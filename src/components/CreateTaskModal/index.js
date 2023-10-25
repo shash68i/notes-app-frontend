@@ -58,6 +58,8 @@ export default function CreateTaskModal({ isOpen, onClose }) {
       }),
     );
     onClose();
+    setEstimateHours('');
+    setEstimateNotes('');
   };
 
   return (

@@ -84,7 +84,7 @@ const tasksSlice = createSlice({
       state.loading = true;
     });
     builder.addCase(createNewTask.fulfilled, (state, actions) => {
-      state.tasksList = [...state.tasksList, actions.payload];
+      state.tasksList = [actions.payload, ...state.tasksList];
       state.loading = false;
     });
     builder.addCase(createNewTask.rejected, (state, actions) => {
